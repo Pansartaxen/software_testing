@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 import random
 
+
 def estimate_pi(n):
     count = 0
     for i in range(n):
@@ -17,6 +18,7 @@ class PiFileWriter:
         with open(file_path, 'w', encoding='utf8') as file:
             file.write(content)
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='PI Maker', description='Computes pi and stores the result to a file')
     parser.add_argument('-i', '--iterations', default=1000000)
@@ -27,5 +29,8 @@ if __name__ == '__main__':
         args.out_file.parent.mkdir(parents=True, exist_ok=True)
 
     pi = estimate_pi(args.iterations)
-    print(pi)
-    PiFileWriter.write(str(pi), args.out_file)
+
+    if args.out_file:
+        PiFileWriter.write(str(pi), args.out_file)
+    else:
+        print(pi)
