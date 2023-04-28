@@ -13,19 +13,10 @@ def estimate_pi(n):
 
 
 class PiFileWriter:
-    def __init__(self):
-        self._content = None
-        self._file_path = None
-
-    def write(self, content, file_path):
-        self._content = content
-        self._file_path = file_path
-
-    def content(self):
-        return self._content
-
-    def file_path(self):
-        return self._file_path
+    @staticmethod
+    def write(content, file_path):
+        with open(file_path, 'w') as file:
+            file.write(content)
 
 
 if __name__ == '__main__':
