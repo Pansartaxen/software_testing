@@ -6,11 +6,13 @@ import msgspec
 
 from tqdm import tqdm
 
+from fuzzing_json import random_data_generator
 
-def random_data_generator():
-    while True:
-        yield {'field_1': random.randint(0, 100),
-               'field_2': random.randint(100, 200)}  # maybe you have a better idea
+
+# def random_data_generator():
+#     while True:
+#         yield {'field_1': random.randint(0, 100),
+#                'field_2': random.randint(100, 200)}  # maybe you have a better idea
 
 
 def main():
