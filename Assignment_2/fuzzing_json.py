@@ -8,27 +8,29 @@ def random_data_generator():
     """
     sys.setrecursionlimit(20000)
     while True:
+        data = None
         data_type = random.choice(["string", "number", "boolean", "null", "list", "dict", "tuple", "unicode"])
         match data_type:
             case "string":
-                yield random_string_generator(100000, 1000000)
+                data = random_string_generator(0, 1000000)
             case "number":
-                yield random.uniform(100000000, 1000000000000)
+                data = random.randint(0, 1000000000000)
             case "boolean":
-                yield random.choice([True, False])
+                data = random.choice([True, False])
             case "null":
-                yield None
+                data = None
             case "list":
-                depth = random.randint(1500, 2000)
-                yield nested_list_generator(depth)
+                depth = random.randint(0, 2000)
+                data = nested_list_generator(depth)
             case "dict":
-                depth = random.randint(1500, 2000)
-                yield nested_dict_generator(depth)
+                depth = random.randint(0, 2000)
+                data = nested_dict_generator(depth)
             case "tuple":
-                depth = random.randint(1500, 2000)
-                yield nested_tuple_generator(depth)
+                depth = random.randint(0, 2000)
+                data = nested_tuple_generator(depth)
             case "unicode":
-                yield random_unicode_generator(10000, 100000)
+                data = random_unicode_generator(0, 100000)
+        yield {data_type: data}
 
 def random_unicode_generator(upper_bound, lower_bound):
     """
@@ -55,8 +57,8 @@ def nested_list_generator(depth):
     Generates a nested list of a given depth and length.
     """
     if depth <= 1:
-        return [random_string_generator(20, 50),
-                random_unicode_generator(20, 50)]
+        return [random_string_generator(0, 50),
+                random_unicode_generator(0, 50)]
     else:
         return [random_nest_function(depth-1)]
 
@@ -66,10 +68,9 @@ def nested_dict_generator(depth):
     """
     if depth <= 1:
         return {random_string_generator(20, 50): random_string_generator(20, 50),
-                random_unicode_generator(20, 50): random_data_generator()}
+                random_unicode_generator(20, 50): next(random_data_generator())}
     else:
-        return {random_string_generator(10, 20): random_string_generator(10, 20),
-                random_string_generator(20, 50): random_nest_function(depth-1)}
+        return {random_string_generator(0, 50): random_nest_function(depth-1)}
 
 def nested_tuple_generator(depth):
     """
@@ -79,7 +80,7 @@ def nested_tuple_generator(depth):
         return (random_string_generator(20, 50),
                 random_unicode_generator(50, 100))
     else:
-        return (random_string_generator(10, 20), random_nest_function(depth-1))
+        return (random_string_generator(0, 20), random_nest_function(depth-1))
 
 # import random
 # import string
