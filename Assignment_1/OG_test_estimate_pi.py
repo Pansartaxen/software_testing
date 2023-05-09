@@ -1,5 +1,5 @@
 import unittest
-from OG_estimate_pi import estimate_pi, PiFileWriter
+from estimate_pi import estimate_pi, PiFileWriter
 
 class TestEstimatePi(unittest.TestCase):
     def test_estimate_pi(self):

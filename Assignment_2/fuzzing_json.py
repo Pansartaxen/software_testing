@@ -1,82 +1,203 @@
-import json
-import orjson
-import msgspec
 import random
 import string
-import time
+import sys
 
 def random_data_generator():
     """
     Generates random data to be used for differential fuzzing.
     """
+    sys.setrecursionlimit(20000)
     while True:
-        data = {}
-        data_type = random.choice(["string", "number", "boolean", "null", "list", "dict"])
+        data_type = random.choice(["string", "number", "boolean", "null", "list", "dict", "tuple", "unicode"])
+        match data_type:
+            case "string":
+                yield random_string_generator(100000, 1000000)
+            case "number":
+                yield random.uniform(100000000, 1000000000000)
+            case "boolean":
+                yield random.choice([True, False])
+            case "null":
+                yield None
+            case "list":
+                depth = random.randint(1500, 2000)
+                yield nested_list_generator(depth)
+            case "dict":
+                depth = random.randint(1500, 2000)
+                yield nested_dict_generator(depth)
+            case "tuple":
+                depth = random.randint(1500, 2000)
+                yield nested_tuple_generator(depth)
+            case "unicode":
+                yield random_unicode_generator(10000, 100000)
 
-        if data_type == "string":
-            length = random.randint(0, 10)
-            data = "".join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
-        elif data_type == "number":
-            data = random.uniform(-1000, 1000)
-        elif data_type == "boolean":
-            data = random.choice([True, False])
-        elif data_type == "null":
-            data = None
-        elif data_type == "list":
-            length = random.randint(0, 5)
-            data = [random_data_generator() for _ in range(length)]
-        elif data_type == "dict":
-            length = random.randint(0, 5)
-            for _ in range(length):
-                key_length = random.randint(1, 100)
-                key = "".join(random.choice(string.ascii_letters + string.digits) for _ in range(key_length))
-                data = {}
-                data[key] = random_data_generator()
-        yield data
+def random_unicode_generator(upper_bound, lower_bound):
+    """
+    Generates a random unicode character.
+    """
+    data = []
+    for _ in range(random.randint(upper_bound, lower_bound)):
+        char = random.randint(0, 1114111)
+        data.append(chr(char))
+    return "".join(data)
 
-def compare_json_encodings(json_data, orjson_data, msgspec_data):
-    if json_data != orjson_data:
-        print("\nJSON and orjson produce different encodings:")
-        print(f"json: {json_data}")
-        print(f"orjson: {orjson_data}")
-    if json_data != msgspec_data:
-        print("\nJSON and msgspec produce different encodings:")
-        print(f"json: {json_data}")
-        print(f"msgspec: {msgspec_data}")
-    if orjson_data != msgspec_data:
-        print("\norjson and msgspec produce different encodings:")
-        print(f"orjson: {orjson_data}")
-        print(f"msgspec: {msgspec_data}")
+def random_string_generator(lower_bound, upper_bound):
+    """
+    Generates a random string of a given length.
+    """
+    length = random.randint(lower_bound, upper_bound)
+    return "".join(random.choice(string.ascii_letters + string.digits + string.punctuation + string.whitespace) for _ in range(length))
 
-def main():
-    for i in range(1000):
-        # Generate random data
-        data = random_data_generator()
+def random_nest_function(depth):
+    return random.choice([nested_list_generator, nested_dict_generator, nested_tuple_generator])(depth)
 
-        # Test encoding and decoding with JSON
-        json_data = json.dumps(data)
-        try:
-            decoded_json_data = json.loads(json_data)
-        except Exception as e:
-            print(f"JSON exception: {e}")
+def nested_list_generator(depth):
+    """
+    Generates a nested list of a given depth and length.
+    """
+    if depth <= 1:
+        return [random_string_generator(20, 50),
+                random_unicode_generator(20, 50)]
+    else:
+        return [random_nest_function(depth-1)]
 
-        # Test encoding and decoding with orjson
-        orjson_data = orjson.dumps(data)
-        try:
-            decoded_orjson_data = orjson.loads(orjson_data)
-        except Exception as e:
-            print(f"orjson exception: {e}")
+def nested_dict_generator(depth):
+    """
+    Generates a nested dictionary of a given depth and size.
+    """
+    if depth <= 1:
+        return {random_string_generator(20, 50): random_string_generator(20, 50),
+                random_unicode_generator(20, 50): random_data_generator()}
+    else:
+        return {random_string_generator(10, 20): random_string_generator(10, 20),
+                random_string_generator(20, 50): random_nest_function(depth-1)}
 
-        # Test encoding and decoding with msgspec
-        msgspec_data = msgspec.json.encode(data)
-        try:
-            decoded_msgspec_data = msgspec.json.decode(msgspec_data)
-        except Exception as e:
-            print(f"msgspec exception: {e}")
+def nested_tuple_generator(depth):
+    """
+    Generates a nested tuple of a given depth and size.
+    """
+    if depth <= 1:
+        return (random_string_generator(20, 50),
+                random_unicode_generator(50, 100))
+    else:
+        return (random_string_generator(10, 20), random_nest_function(depth-1))
 
-        # Compare encodings
-        compare_json_encodings(json_data, orjson_data, msgspec_data)
+# import random
+# import string
 
+# # def random_data_generator():
+# #     while True:
+# #         data_type = random.choice(["string", "number", "boolean", "null", "list", "dict", "tuple", "unicode"])
+# #         if data_type == "string":
+# #             length = random.randint(100, 1000)
+# #             data = "".join(random.choice(string.ascii_letters + string.digits + string.punctuation + string.whitespace) for _ in range(length))
+# #         case "number":
+# #             data = random.uniform(-100, 100)
+# #         case "boolean":
+# #             data = random.choice([True, False])
+# #         case "null":
+# #             data = None
+# #         case "list":
+# #             length = random.randint(5, 10)
+# #             depth = random.randint(20, 50)
+# #             data = nested_list_generator(depth, length)
+# #         case "dict":
+# #             length = random.randint(5, 10)
+# #             depth = random.randint(20, 50)
+# #             data = nested_dict_generator(depth, length)
+# #         case "tuple":
+# #             length = random.randint(5, 10)
+# #             depth = random.randint(20, 50)
+# #             data = nested_tuple_generator(depth, length)
+# #         case "unicode":
+# #             length = random.randint(1000, 10000)
+# #             data = "".join(random.choice(string.printable) for _ in range(length))
+# #         yield data
 
-if __name__ == "__main__":
-    main()
+# def random_data_generator():
+#     while True:
+#         data = {}
+#         data_type = random.choice(["string", "number", "boolean", "null", "list", "dict", "tuple", "unicode"])
+#         if data_type == "string":
+#             length = random.randint(10, 100)
+#             data = "".join(random.choice(string.ascii_letters + string.digits + string.punctuation + string.whitespace) for _ in range(length))
+#         case "number":
+#             data = random.uniform(-100, 100)
+#         case "boolean":
+#             data = random.choice([True, False])
+#         case "null":
+#             data = None
+#         case "list":
+#             depth = random.randint(3, 5)
+#             length = random.randint(3, 5)
+#             stack = [(nested_list_generator(depth, length),)]
+#             data = []
+#             while stack:
+#                 curr, *rest = stack
+#                 if isinstance(curr, tuple):
+#                     if curr:
+#                         stack = [*curr, rest]
+#                         stack[-2] = curr[0]
+#                     else:
+#                         data.append([])
+#                 else:
+#                     for item in reversed(curr):
+#                         stack = [(item, *rest)] + stack
+#         case "dict":
+#             depth = random.randint(3, 5)
+#             size = random.randint(3, 5)
+#             stack = [(nested_dict_generator(depth, size),)]
+#             data = {}
+#             while stack:
+#                 curr, *rest = stack
+#                 if isinstance(curr, tuple):
+#                     if curr:
+#                         stack = [*curr, rest]
+#                         stack[-2] = curr[0]
+#                     else:
+#                         data[""] = {}
+#                 else:
+#                     for key, value in curr.items():
+#                         stack = [("", key, *rest), (value,)]
+#         case "tuple":
+#             depth = random.randint(3, 5)
+#             size = random.randint(3, 5)
+#             stack = [(nested_tuple_generator(depth, size),)]
+#             data = ()
+#             while stack:
+#                 curr, *rest = stack
+#                 if isinstance(curr, tuple):
+#                     if curr:
+#                         stack = [*curr, rest]
+#                         stack[-2] = curr[0]
+#                     else:
+#                         data += ()
+#                 else:
+#                     data += (curr,)
+#         case "unicode":
+#             length = random.randint(10, 100)
+#             data = "".join(random.choice(string.printable) for _ in range(length))
+#         yield data
+
+# def nested_list_generator(depth):
+#     length = random.randint(10, 20)
+#     if depth <= 1:
+#         return [random_data_generator()]
+#     else:
+#         return [random_nest_function(depth-1)]
+
+# def nested_dict_generator(depth):
+#     if depth <= 1:
+#         length = random.randint(10, 20)
+#         key = "".join(random.choice(string.ascii_letters + string.digits + string.punctuation + string.whitespace) for _ in range(length))
+#         return {key: random_data_generator()}
+#     else:
+#         length = random.randint(10, 20)
+#         key = "".join(random.choice(string.ascii_letters + string.digits + string.punctuation + string.whitespace) for _ in range(length))
+#         return {key: random_nest_function(depth-1)}
+
+# def nested_tuple_generator(depth):
+#     if depth <= 1:
+#         size = random.randint(10, 20)
+#         return tuple(random_data_generator())
+#     else:
+#         return tuple(random_nest_function(depth-1))

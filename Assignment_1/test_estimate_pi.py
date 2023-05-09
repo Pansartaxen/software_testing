@@ -30,7 +30,7 @@ class TestEstimatePi(unittest.TestCase):
         pass
 
 
-class MockPiFileWriter:
+class MockPiFileWriter():
     def __init__(self):
         self._content = None
         self._file_path = None

@@ -8,13 +8,6 @@ from tqdm import tqdm
 
 from fuzzing_json import random_data_generator
 
-
-# def random_data_generator():
-#     while True:
-#         yield {'field_1': random.randint(0, 100),
-#                'field_2': random.randint(100, 200)}  # maybe you have a better idea
-
-
 def main():
     random.seed(9001)
     data_generator = random_data_generator()
@@ -23,14 +16,14 @@ def main():
     for _ in tqdm(range(1000)):
         data = next(data_generator)
         try:
-            output_json = json.dumps(data, indent=None, separators=(',', ':'))
+            output_json = json.dumps(data, indent=None, separators=(',', ':'), ensure_ascii=False).encode('utf8')
             output_orjson = orjson.dumps(data)
             output_mesgspec = msgspec.json.encode(data)
         except Exception as exception:
             exeptions += [(exception, data)]
         else:
-            if not output_json.encode() == output_orjson == output_mesgspec:
-                print(output_json.encode(), output_orjson, output_mesgspec)
+            if not output_json == output_orjson == output_mesgspec:
+                print(output_json, output_orjson, output_mesgspec)
                 mismatches += [data]
     print(f'{len(exeptions)} exceptions and {len(mismatches)} mismatches found')
 
