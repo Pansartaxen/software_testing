@@ -2,203 +2,101 @@ import random
 import string
 import sys
 
-def random_data_generator():
+def random_data_generator() -> dict:
     """
     Generates random data to be used for differential fuzzing.
     """
-    sys.setrecursionlimit(20000)
+    # Sets the recursion limit to 50000 to allow for deeper trees
+    sys.setrecursionlimit(50000)
     while True:
         data = None
-        data_type = random.choice(["string", "number", "boolean", "null", "list", "dict", "tuple", "unicode"])
+        # Chooses a random data type
+        data_type = random.choice(["string", "int", "boolean", "null", "list", "dict", "tuple", "binary", "hex"])
+        # Generates data of the chosen data type
         match data_type:
             case "string":
-                data = random_string_generator(0, 1000000)
-            case "number":
-                data = random.randint(0, 1000000000000)
+                data = random_string_generator(1, 1000000)
+            case "int":
+                # Test if small and big numbers are handled correctly
+                data = random.uniform(0.000000000001, 1000000000000)
             case "boolean":
                 data = random.choice([True, False])
             case "null":
                 data = None
             case "list":
-                depth = random.randint(0, 2000)
+                depth = random.randint(1, 1000)
                 data = nested_list_generator(depth)
             case "dict":
-                depth = random.randint(0, 2000)
+                depth = random.randint(1, 1000)
                 data = nested_dict_generator(depth)
             case "tuple":
-                depth = random.randint(0, 2000)
+                depth = random.randint(1, 1000)
                 data = nested_tuple_generator(depth)
-            case "unicode":
-                data = random_unicode_generator(0, 100000)
-        yield {data_type: data}
+            case "binary":
+                data = bin(random.randint(1, 100000000000))
+            case "hex":
+                data = hex(random.randint(1, 100000000000))
+        yield {random_string_generator(100, 200): data}
 
-def random_unicode_generator(upper_bound, lower_bound):
+def random_string_generator(lower_bound: int, upper_bound: int) -> str:
     """
-    Generates a random unicode character.
-    """
-    data = []
-    for _ in range(random.randint(upper_bound, lower_bound)):
-        char = random.randint(0, 1114111)
-        data.append(chr(char))
-    return "".join(data)
-
-def random_string_generator(lower_bound, upper_bound):
-    """
-    Generates a random string of a given length.
+    Generates a random string of a random length in a given range.
     """
     length = random.randint(lower_bound, upper_bound)
     return "".join(random.choice(string.ascii_letters + string.digits + string.punctuation + string.whitespace) for _ in range(length))
 
-def random_nest_function(depth):
+def random_nest_function(depth: int):
+    """
+    Calls a random generator function.
+    """
     return random.choice([nested_list_generator, nested_dict_generator, nested_tuple_generator])(depth)
 
-def nested_list_generator(depth):
+def nested_list_generator(depth: int) -> list:
     """
-    Generates a nested list of a given depth and length.
-    """
-    if depth <= 1:
-        return [random_string_generator(0, 50),
-                random_unicode_generator(0, 50)]
-    else:
-        return [random_nest_function(depth-1)]
-
-def nested_dict_generator(depth):
-    """
-    Generates a nested dictionary of a given depth and size.
+    Adds a list to the nest and calls the
+    random generator function to add another
+    data type if the depth is greater than 1,
+    otherwise returns a list of random strings.
     """
     if depth <= 1:
-        return {random_string_generator(20, 50): random_string_generator(20, 50),
-                random_unicode_generator(20, 50): next(random_data_generator())}
+        # If the depth is 1 or less the tree is done and a list of random strings is returned
+        return [random_string_generator(0, 50)]
     else:
-        return {random_string_generator(0, 50): random_nest_function(depth-1)}
+        # Floor division to ensure the result is an int
+        # and devide by 5 to ensure the depth is not too big
+        # since the tree will grow exponentially
+        return [random_nest_function(depth//5) for _ in range(5)]
 
-def nested_tuple_generator(depth):
+def nested_dict_generator(depth: int) -> dict:
     """
-    Generates a nested tuple of a given depth and size.
+    Adds a dict to the nest and calls the
+    random generator function to add another
+    data type if the depth is greater than 1,
+    otherwise returns a dict of random strings.
     """
     if depth <= 1:
-        return (random_string_generator(20, 50),
-                random_unicode_generator(50, 100))
+        # If the depth is 1 or less the tree is done and a dict of random strings is returned
+        return {random_string_generator(20, 50): random_string_generator(20, 50)}
     else:
-        return (random_string_generator(0, 20), random_nest_function(depth-1))
+        # Same thing here as in the nested_list_generator, the depth is limited
+        # by using floor division to avoid geting a too big tree and saving some RAM :)
+        return {random_string_generator(0, 50): random_nest_function(depth-1),
+                random_string_generator(0, 50): random_nest_function(depth//10),
+                random_string_generator(0, 50): random_nest_function(depth//5),
+                random_string_generator(0, 50): random_nest_function(depth//2),
+                random_string_generator(0, 50): random_nest_function(depth//4)}
 
-# import random
-# import string
-
-# # def random_data_generator():
-# #     while True:
-# #         data_type = random.choice(["string", "number", "boolean", "null", "list", "dict", "tuple", "unicode"])
-# #         if data_type == "string":
-# #             length = random.randint(100, 1000)
-# #             data = "".join(random.choice(string.ascii_letters + string.digits + string.punctuation + string.whitespace) for _ in range(length))
-# #         case "number":
-# #             data = random.uniform(-100, 100)
-# #         case "boolean":
-# #             data = random.choice([True, False])
-# #         case "null":
-# #             data = None
-# #         case "list":
-# #             length = random.randint(5, 10)
-# #             depth = random.randint(20, 50)
-# #             data = nested_list_generator(depth, length)
-# #         case "dict":
-# #             length = random.randint(5, 10)
-# #             depth = random.randint(20, 50)
-# #             data = nested_dict_generator(depth, length)
-# #         case "tuple":
-# #             length = random.randint(5, 10)
-# #             depth = random.randint(20, 50)
-# #             data = nested_tuple_generator(depth, length)
-# #         case "unicode":
-# #             length = random.randint(1000, 10000)
-# #             data = "".join(random.choice(string.printable) for _ in range(length))
-# #         yield data
-
-# def random_data_generator():
-#     while True:
-#         data = {}
-#         data_type = random.choice(["string", "number", "boolean", "null", "list", "dict", "tuple", "unicode"])
-#         if data_type == "string":
-#             length = random.randint(10, 100)
-#             data = "".join(random.choice(string.ascii_letters + string.digits + string.punctuation + string.whitespace) for _ in range(length))
-#         case "number":
-#             data = random.uniform(-100, 100)
-#         case "boolean":
-#             data = random.choice([True, False])
-#         case "null":
-#             data = None
-#         case "list":
-#             depth = random.randint(3, 5)
-#             length = random.randint(3, 5)
-#             stack = [(nested_list_generator(depth, length),)]
-#             data = []
-#             while stack:
-#                 curr, *rest = stack
-#                 if isinstance(curr, tuple):
-#                     if curr:
-#                         stack = [*curr, rest]
-#                         stack[-2] = curr[0]
-#                     else:
-#                         data.append([])
-#                 else:
-#                     for item in reversed(curr):
-#                         stack = [(item, *rest)] + stack
-#         case "dict":
-#             depth = random.randint(3, 5)
-#             size = random.randint(3, 5)
-#             stack = [(nested_dict_generator(depth, size),)]
-#             data = {}
-#             while stack:
-#                 curr, *rest = stack
-#                 if isinstance(curr, tuple):
-#                     if curr:
-#                         stack = [*curr, rest]
-#                         stack[-2] = curr[0]
-#                     else:
-#                         data[""] = {}
-#                 else:
-#                     for key, value in curr.items():
-#                         stack = [("", key, *rest), (value,)]
-#         case "tuple":
-#             depth = random.randint(3, 5)
-#             size = random.randint(3, 5)
-#             stack = [(nested_tuple_generator(depth, size),)]
-#             data = ()
-#             while stack:
-#                 curr, *rest = stack
-#                 if isinstance(curr, tuple):
-#                     if curr:
-#                         stack = [*curr, rest]
-#                         stack[-2] = curr[0]
-#                     else:
-#                         data += ()
-#                 else:
-#                     data += (curr,)
-#         case "unicode":
-#             length = random.randint(10, 100)
-#             data = "".join(random.choice(string.printable) for _ in range(length))
-#         yield data
-
-# def nested_list_generator(depth):
-#     length = random.randint(10, 20)
-#     if depth <= 1:
-#         return [random_data_generator()]
-#     else:
-#         return [random_nest_function(depth-1)]
-
-# def nested_dict_generator(depth):
-#     if depth <= 1:
-#         length = random.randint(10, 20)
-#         key = "".join(random.choice(string.ascii_letters + string.digits + string.punctuation + string.whitespace) for _ in range(length))
-#         return {key: random_data_generator()}
-#     else:
-#         length = random.randint(10, 20)
-#         key = "".join(random.choice(string.ascii_letters + string.digits + string.punctuation + string.whitespace) for _ in range(length))
-#         return {key: random_nest_function(depth-1)}
-
-# def nested_tuple_generator(depth):
-#     if depth <= 1:
-#         size = random.randint(10, 20)
-#         return tuple(random_data_generator())
-#     else:
-#         return tuple(random_nest_function(depth-1))
+def nested_tuple_generator(depth: int) -> tuple:
+    """
+    Adds a tuple to the nest and calls the
+    random generator function to add another
+    data type if the depth is greater than 1,
+    otherwise returns a dict of random strings.
+    """
+    if depth <= 1:
+        # If the depth is 1 or less the tree is done and a tuple of random strings is returned
+        return (random_string_generator(20, 50))
+    else:
+        # Once again floor division to ensure the result is an int
+        # and devide by 5 to ensure the depth is not too big
+        return (random_nest_function(depth//5) for _ in range(5))
